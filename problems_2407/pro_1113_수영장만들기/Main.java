@@ -28,24 +28,16 @@ public class Main {
 			this.y = y;
 			this.x = x;
 		}
-		public void finallyWater() {
-			water.add(this);
-		}
-
-		public void maybeWall() {
-			sector=-1;
-		}
 	}
 	// 0이면 미방문, -1이면 벽으로 확정, 1이상이면
 	static int[][] isVisited;
 	static Node[][] nodes;
 	static Queue<Node> wall =new ArrayDeque<>();
-	static Queue<Node> water=new ArrayDeque<>();
 	static int minOuterWallSize =1000;
-	static List<Integer> sectorsHeight = new ArrayList<>();
 	static int[] dx = {0,0,-1,1};
 	static int[] dy = {-1,1,0,0};
 
+	static int[][][] sectors;
 	public static void main(String[] args) throws IOException {
 
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
@@ -71,13 +63,36 @@ public class Main {
 		// 1. 1차 외벽 찾기.
 		findOuterWall();
 
-		// 2. 물이 들어올 수 있는 후보 중에서, 최소 외벽보다 더 높은 칸을 찾는다.
-		findZeroSector();
+		sectors = new int[10][y][x];
 
-		logWall();
+		// 3차원으로 보자. 2차원으로 쪼개놓으면, 높이를 고려할 필요가 없다.
+		for (int i = 1; i <= 9; i++) {
+			for (int j = 0; j < y; j++) {
+				for (int k = 0; k < x; k++) {
+					int size = nodes[j][k].size;
+					if (size > i) {
+						sectors[i][j][k] = 1;
+					}
+				}
+			}
+		}
 
 
-		int result = 0;
+//		logWall();
+
+		for (int i = 1; i <= 9; i++) {
+			int[][] sector = sectors[i];
+			isVisited = new int[y][x];
+			for (int j = 0; j < sector.length; j++) {
+				for (int k = 0; k < sector[0].length; k++) {
+					if (sector[j][k] == 0 && isVisited[j][k]==0 && nodes[j][k].sector ==0) {
+						queue.add(nodes[j][k]);
+						result+=bfs(sector);
+					}
+				}
+			}
+		}
+
 
 		bw.write(result+"");
 
@@ -86,58 +101,44 @@ public class Main {
 		bw.close();
 	}
 
+	private static int bfs(int[][] sector) {
+		int size = 0;
+		boolean isWall = false;
+		while (!queue.isEmpty()) {
+			Node node = queue.poll();
+			if (node.sector == Integer.MIN_VALUE) {
+				isWall = true;
+			}
+			if (isVisited[node.y][node.x] == 0) {
+				isVisited[node.y][node.x] = 1;
+				if (sector[node.y][node.x] == 0) {
+					size++;
+					for (int j = 0; j < 4; j++) {
+						int ny = node.y+dy[j];
+						int nx = node.x+dx[j];
+						if (ny>=0 && nx>=0 && ny<sector.length && nx<sector[0].length) {
+							if (sector[ny][nx] == 0) {
+								queue.add(nodes[ny][nx]);
+							}
+						}
+					}
+				} else { //벽을 만나면 종료한다.
+					continue;
+				}
+			}
+		}
+//		System.out.println("sector : "+i + " result : "+size + " isWall : "+isWall);
+		if (isWall) {
+			return 0;
+		}
+
+		return size;
+	}
+
+	static int result = 0;
 
 	static Queue<Node> queue = new ArrayDeque<>();
 
-	private static void findZeroSector() {
-		for (int i = 0; i < nodes.length; i++) {
-			for (int j = 0; j < nodes[0].length; j++) {
-				if (nodes[i][j].sector == Integer.MIN_VALUE) { //-2는 외벽이다.
-					ifNotWallAddWater(nodes[i][j]);
-				}
-			}
-		}
-	}
-
-	private static void ifNotWallAddWater(Node node) {
-		for (int i = 0; i < 4; i++) {
-			int ny = node.y+dy[i];
-			int nx = node.x+dx[i];
-			if (ny>=0 && nx>=0 && ny<nodes.length && nx<nodes[0].length) {
-				addWaterIfNotWall(node, nodes[ny][nx]);
-			}
-		}
-	}
-
-	private static void addWaterIfNotWall(Node node, Node nextNode) {
-		if (nextNode.sector==0) {
-			if (node.size > nextNode.size) {
-				nextNode.sector=sectorsHeight.size();
-				sectorsHeight.add(node.size);
-				queue.add(nextNode);
-				bfs(nextNode.sector);
-			}
-		}
-	}
-
-	private static void bfs(int sector) {
-		while (!queue.isEmpty()) {
-			Node node = queue.poll();
-			System.out.println("물이 들어올 수 있는 후보 : "+node);
-			for (int i = 0; i < 4; i++) {
-				int ny = node.y+dy[i];
-				int nx = node.x+dx[i];
-				if (ny>=0 && nx>=0 && ny<nodes.length && nx<nodes[0].length) {
-					ifWaterAddAndCheck(nodes[ny][nx], sector);
-				}
-			}
-		}
-	}
-
-	// 혹시 시간 문제를 개선해야한다면 sector에 크기만 저장할 게 아니라, 갯수까지 같이 저장한다.
-	private static void ifWaterAddAndCheck(Node node, int sector) {
-		System.out.println("물이 들어올 수 있나...? "+node);
-	}
 
 	private static void findOuterWall() {
 		for (int i = 0; i < nodes.length; i++) {
