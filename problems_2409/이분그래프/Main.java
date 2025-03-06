@@ -1,6 +1,8 @@
 package problems_2409.이분그래프;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.StringTokenizer;
 
 public class Main {
@@ -16,34 +18,36 @@ public class Main {
 			int v = Integer.parseInt(st.nextToken());
 			int e = Integer.parseInt(st.nextToken());
 
-			int[][] graph = new int[v+1][v+1];
 			int[] group = new int[v+1];
+			List<Integer>[] list = new List[v+1];
+			for (int j = 0; j < list.length; j++) {
+				list[j] = new ArrayList<>();
+			}
 
 			for (int j = 0; j < e; j++) {
 				st = new StringTokenizer(br.readLine(), " ");
 				int a = Integer.parseInt(st.nextToken());
 				int b = Integer.parseInt(st.nextToken());
-				graph[a][b] = 1;
-				graph[b][a] = 1;
+//				graph[a][b] = 1;
+//				graph[b][a] = 1;
+				list[a].add(b);
+				list[b].add(a);
 			}
 
-			/*
-			 0 : 아직 미탐색
-			 1 : 그룹 1
-			 2 : 그룹 2
-
-			 탐색 중, 직전 그룹값과 같은 그룹을 만날 경우 이분그래프가 아님.
-			 */
 			BooleanContainer result = new BooleanContainer();
 
 			// 섬이 있을 수 있음.
-			while (check(group)) {
+			while (check(group) && result.value) {
 				for (int j = 1; j < group.length; j++) {
 					if (group[j] == 0) {
-						dfs(graph, j, group, 1, result);
+						dfs(j, group, 1, result, list);
 						break;
 					}
 				}
+			}
+
+			for (int j = 1; j < group.length; j++) {
+
 			}
 
 			if (result.value) {
@@ -73,7 +77,7 @@ public class Main {
 		public Boolean value = true;
 	}
 
-	private static void dfs(int[][] graph, int v, int[] group, int preGroup, BooleanContainer result) {
+	private static void dfs(int v, int[] group, int preGroup, BooleanContainer result, List<Integer>[] graph) {
 		if (!result.value) {
 			return;
 		}
@@ -86,12 +90,16 @@ public class Main {
 			}
 			return;
 		}
-//		System.out.println("v = " + v + ", preGroup = " + preGroup + " group = " + group[v] + " result = " + result);
-		for (int i = 1; i < graph.length; i++) {
-			if (graph[v][i] == 1) {
-				dfs(graph, i, group, preGroup == 1 ? 2 : 1, result);
+
+		for (int i = 0; i < graph[v].size(); i++) {
+			if (group[graph[v].get(i)] == 0) {
+				dfs(graph[v].get(i), group, group[v], result, graph);
+			} else if (group[graph[v].get(i)] == group[v]) {
+				result.value = false;
+				return;
 			}
 		}
+
 	}
 
 }
